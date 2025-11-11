@@ -1,0 +1,54 @@
+﻿@page "/contapagars"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using FarolFInanceiro.Models
+@using FarolFInanceiro.Data
+@using System.Security.Claims
+@using System.Globalization
+@implements IAsyncDisposable
+@inject IDbContextFactory<FarolFInanceiro.Data.ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="contapagars/create" class="btn btn-primary">Create New</a>
+</p>
+
+<QuickGrid Class="table table-striped" Items="context.ContasAPagar">
+    <TemplateColumn Title="DataCadastro" Context="contapagar">
+        @contapagar.DataCadastro.ToShortDateString()
+    </TemplateColumn>
+    <PropertyColumn Property="contapagar => contapagar.Descricao" />
+    <TemplateColumn Title="Valor" Align="Align.End" Context="contapagar">
+        @contapagar.Valor.ToString("C", ptBR)
+    </TemplateColumn>
+    <TemplateColumn Title="DataVencimento" Context="contapagar">
+        @contapagar.DataVencimento.ToShortDateString()
+    </TemplateColumn>
+    <TemplateColumn Title="DataPagamento" Context="contapagar">
+        @contapagar.DataPagamento?.ToShortDateString()
+    </TemplateColumn>
+
+    <TemplateColumn Context="contapagar">
+        <a href="@($"contapagars/edit?id={contapagar.Id}")" class="btn btn-info">Edit</a> |
+        <a href="@($"contapagars/details?id={contapagar.Id}")" class="btn btn-success">Details</a> |
+        <a href="@($"contapagars/delete?id={contapagar.Id}")" class="btn btn-danger">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private ApplicationDbContext context = default!;
+    private readonly CultureInfo ptBR = new("pt-BR");
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

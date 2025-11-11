@@ -1,0 +1,94 @@
+﻿@page "/contapagars/create"
+@attribute [Authorize]
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Authorization
+@using FarolFInanceiro.Models
+@using System.Security.Claims
+@inject IDbContextFactory<FarolFInanceiro.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>ContaPagar</h2>
+<hr />
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
+    </div>
+}
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="ContaPagar" OnValidSubmit="AddContaPagar" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert"/>       
+            <div class="mb-3">
+                <label for="descricao" class="form-label">Descricao:</label> 
+                <InputText id="descricao" @bind-Value="ContaPagar.Descricao" class="form-control" aria-required="true"/> 
+                <ValidationMessage For="() => ContaPagar.Descricao" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="valor" class="form-label">Valor:</label> 
+                <InputNumber id="valor" @bind-Value="ContaPagar.Valor" class="form-control" aria-required="true"/> 
+                <ValidationMessage For="() => ContaPagar.Valor" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="datavencimento" class="form-label">DataVencimento:</label> 
+                <InputDate id="datavencimento" @bind-Value="ContaPagar.DataVencimento" class="form-control" aria-required="true"/> 
+                <ValidationMessage For="() => ContaPagar.DataVencimento" class="text-danger" /> 
+            </div>              
+            <div class="mb-3">
+                <label for="paga" class="form-label">Paga:</label> 
+                <InputCheckbox id="paga" @bind-Value="ContaPagar.Paga" class="form-check-input" /> 
+                <ValidationMessage For="() => ContaPagar.Paga" class="text-danger" /> 
+            </div>              
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/contapagars">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private ContaPagar ContaPagar { get; set; } = new();
+
+    private string? errorMessage;
+
+    private async Task AddContaPagar()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var currentUserId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            errorMessage = "Erro: Você não está autenticado. Por favor, faça login novamente.";
+            return;
+        }
+
+        errorMessage = null;
+
+        ContaPagar.DataCadastro = DateTime.Now;
+
+        ContaPagar.ApplicationUserId = currentUserId;
+
+        if (ContaPagar.Paga)
+        {
+            ContaPagar.DataPagamento = DateTime.Now;
+        }
+        else
+        {
+            ContaPagar.DataPagamento = null;
+        }
+
+        using var context = DbFactory.CreateDbContext();
+        context.ContasAPagar.Add(ContaPagar);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/contapagars");
+    }
+}

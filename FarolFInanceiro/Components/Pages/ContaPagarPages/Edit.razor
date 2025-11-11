@@ -1,0 +1,120 @@
+﻿@page "/contapagars/edit"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using FarolFInanceiro.Models
+@using System.Security.Claims
+@inject IDbContextFactory<FarolFInanceiro.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>ContaPagar</h2>
+<hr />
+@if (ContaPagar is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="ContaPagar" OnValidSubmit="UpdateContaPagar" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert"/>
+                <input type="hidden" name="ContaPagar.Id" value="@ContaPagar.Id" />
+                <div class="mb-3">
+                    <label for="datacadastro" class="form-label">DataCadastro:</label>
+                    <InputDate id="datacadastro" @bind-Value="ContaPagar.DataCadastro" class="form-control" ReadOnly="true" tabindex="-1" />
+                    <ValidationMessage For="() => ContaPagar.DataCadastro" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="descricao" class="form-label">Descricao:</label>
+                    <InputText id="descricao" @bind-Value="ContaPagar.Descricao" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => ContaPagar.Descricao" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="valor" class="form-label">Valor:</label>
+                    <InputNumber id="valor" @bind-Value="ContaPagar.Valor" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => ContaPagar.Valor" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="datavencimento" class="form-label">DataVencimento:</label>
+                    <InputDate id="datavencimento" @bind-Value="ContaPagar.DataVencimento" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => ContaPagar.DataVencimento" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="paga" class="form-label">Paga:</label>
+                    <InputCheckbox id="paga" @bind-Value="ContaPagar.Paga" class="form-check-input" />
+                    <ValidationMessage For="() => ContaPagar.Paga" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button> |
+                <a href="/contapagars" class="btn btn-danger">Back to List</a>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private ContaPagar? ContaPagar { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        ContaPagar ??= await context.ContasAPagar.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (ContaPagar is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    private async Task UpdateContaPagar()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var currentUserId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(ContaPagar!).State = EntityState.Modified;
+
+        try
+        {
+            if (!ContaPagarExists(ContaPagar!.Id))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+
+            ContaPagar.ApplicationUserId = currentUserId;
+
+            if (ContaPagar.Paga)
+            {
+                ContaPagar.DataPagamento = DateTime.Now;
+            }
+            else
+            {
+                ContaPagar.DataPagamento = null;
+            }
+
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
+        }
+
+        NavigationManager.NavigateTo("/contapagars");
+    }
+
+    private bool ContaPagarExists(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.ContasAPagar.Any(e => e.Id == id);
+    }
+}
