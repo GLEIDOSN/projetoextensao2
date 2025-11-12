@@ -45,13 +45,10 @@
                 <InputCheckbox id="paga" @bind-Value="ContaPagar.Paga" class="form-check-input" /> 
                 <ValidationMessage For="() => ContaPagar.Paga" class="text-danger" /> 
             </div>              
-            <button type="submit" class="btn btn-primary">Create</button>
+            <button type="submit" class="btn btn-primary">Create</button> |
+            <a href="/contapagars" class="btn btn-danger">Back to List</a>
         </EditForm>
     </div>
-</div>
-
-<div>
-    <a href="/contapagars">Back to List</a>
 </div>
 
 @code {

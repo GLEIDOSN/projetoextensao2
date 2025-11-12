@@ -1,0 +1,62 @@
+﻿@page "/contarecebers/details"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using FarolFInanceiro.Models
+@using System.Security.Claims
+@inject IDbContextFactory<FarolFInanceiro.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>ContaReceber</h2>
+    <hr />
+    @if (contareceber is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">DataCadastro</dt>
+            <dd class="col-sm-10">@contareceber.DataCadastro</dd>
+            <dt class="col-sm-2">Descricao</dt>
+            <dd class="col-sm-10">@contareceber.Descricao</dd>
+            <dt class="col-sm-2">Valor</dt>
+            <dd class="col-sm-10">@contareceber.Valor</dd>
+            <dt class="col-sm-2">DataVencimento</dt>
+            <dd class="col-sm-10">@contareceber.DataVencimento</dd>
+            <dt class="col-sm-2">DataRecebimento</dt>
+            <dd class="col-sm-10">@contareceber.DataRecebimento</dd>
+            <dt class="col-sm-2">Recebida</dt>
+            <dd class="col-sm-10">@contareceber.Recebida</dd>
+            <dt class="col-sm-2">ApplicationUserId</dt>
+            <dd class="col-sm-10">@contareceber.ApplicationUserId</dd>
+        </dl>
+        <div>
+            <a href="@($"/contarecebers/edit?id={contareceber.Id}")"class="btn btn-warning" >Edit</a> |
+            <a href="@($"/contarecebers")" class="btn btn-danger">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private ContaReceber? contareceber;
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        contareceber = await context.ContasAReceber.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (contareceber is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

@@ -1,0 +1,121 @@
+﻿@page "/contarecebers/edit"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using FarolFInanceiro.Models
+@using System.Security.Claims
+@inject IDbContextFactory<FarolFInanceiro.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>ContaReceber</h2>
+<hr />
+@if (ContaReceber is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="ContaReceber" OnValidSubmit="UpdateContaReceber" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert"/>
+                <input type="hidden" name="ContaReceber.Id" value="@ContaReceber.Id" />
+                <div class="mb-3">
+                    <label for="datacadastro" class="form-label">DataCadastro:</label>
+                    <InputDate id="datacadastro" @bind-Value="ContaReceber.DataCadastro" class="form-control" ReadOnly="true" e tabindex="-1" />
+                    <ValidationMessage For="() => ContaReceber.DataCadastro" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="descricao" class="form-label">Descricao:</label>
+                    <InputText id="descricao" @bind-Value="ContaReceber.Descricao" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => ContaReceber.Descricao" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="valor" class="form-label">Valor:</label>
+                    <InputNumber id="valor" @bind-Value="ContaReceber.Valor" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => ContaReceber.Valor" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="datavencimento" class="form-label">DataVencimento:</label>
+                    <InputDate id="datavencimento" @bind-Value="ContaReceber.DataVencimento" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => ContaReceber.DataVencimento" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="recebida" class="form-label">Recebida:</label>
+                    <InputCheckbox id="recebida" @bind-Value="ContaReceber.Recebida" class="form-check-input" />
+                    <ValidationMessage For="() => ContaReceber.Recebida" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button> |
+                <a href="/contarecebers" class="btn btn-danger">Back to List</a>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private ContaReceber? ContaReceber { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        ContaReceber ??= await context.ContasAReceber.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (ContaReceber is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    private async Task UpdateContaReceber()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var currentUserId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(ContaReceber!).State = EntityState.Modified;
+
+        try
+        {
+            if (!ContaReceberExists(ContaReceber!.Id))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+
+            ContaReceber.ApplicationUserId = currentUserId;
+
+            if (ContaReceber.Recebida)
+            {
+                ContaReceber.DataRecebimento = DateTime.Now;
+            }
+            else
+            {
+                ContaReceber.DataRecebimento = null;
+            }
+
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
+        }
+
+        NavigationManager.NavigateTo("/contarecebers");
+    }
+
+    private bool ContaReceberExists(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.ContasAReceber.Any(e => e.Id == id);
+    }
+}
+

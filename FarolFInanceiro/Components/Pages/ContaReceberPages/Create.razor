@@ -1,0 +1,90 @@
+﻿@page "/contarecebers/create"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using FarolFInanceiro.Models
+@using System.Security.Claims
+@inject IDbContextFactory<FarolFInanceiro.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>ContaReceber</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="ContaReceber" OnValidSubmit="AddContaReceber" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert"/>
+            <div class="mb-3">
+                <label for="descricao" class="form-label">Descricao:</label> 
+                <InputText id="descricao" @bind-Value="ContaReceber.Descricao" class="form-control" aria-required="true"/> 
+                <ValidationMessage For="() => ContaReceber.Descricao" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="valor" class="form-label">Valor:</label> 
+                <InputNumber id="valor" @bind-Value="ContaReceber.Valor" class="form-control" aria-required="true"/> 
+                <ValidationMessage For="() => ContaReceber.Valor" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="datavencimento" class="form-label">DataVencimento:</label> 
+                <InputDate id="datavencimento" @bind-Value="ContaReceber.DataVencimento" class="form-control" aria-required="true"/> 
+                <ValidationMessage For="() => ContaReceber.DataVencimento" class="text-danger" /> 
+            </div>     
+            <div class="mb-3">
+                <label for="recebida" class="form-label">Recebida:</label> 
+                <InputCheckbox id="recebida" @bind-Value="ContaReceber.Recebida" class="form-check-input" /> 
+                <ValidationMessage For="() => ContaReceber.Recebida" class="text-danger" /> 
+            </div>
+            <div class="mb-3">
+                <label for="applicationuserid" class="form-label">ApplicationUserId:</label>
+                <InputText id="applicationuserid" @bind-Value="ContaReceber.ApplicationUserId" class="form-control" />
+                <ValidationMessage For="() => ContaReceber.ApplicationUserId" class="text-danger" />
+            </div>
+            <button type="submit" class="btn btn-primary">Create</button> |
+            <a href="/contarecebers" class="btn btn-danger">Back to List</a>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private ContaReceber ContaReceber { get; set; } = new();
+
+    private string? errorMessage;
+
+    private async Task AddContaReceber()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var currentUserId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            errorMessage = "Erro: Você não está autenticado. Por favor, faça login novamente.";
+            return;
+        }
+
+        errorMessage = null;
+
+        ContaReceber.DataCadastro = DateTime.Now;
+        ContaReceber.ApplicationUserId = currentUserId;
+
+        if (ContaReceber.Recebida)
+        {
+            ContaReceber.DataRecebimento = DateTime.Now;
+        }
+        else
+        {
+            ContaReceber.DataRecebimento = null;
+        }
+
+        using var context = DbFactory.CreateDbContext();
+        context.ContasAReceber.Add(ContaReceber);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/contarecebers");
+    }
+}
+

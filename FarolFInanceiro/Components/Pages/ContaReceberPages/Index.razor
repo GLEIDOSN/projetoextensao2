@@ -1,0 +1,61 @@
+﻿@page "/contarecebers"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using FarolFInanceiro.Models
+@using FarolFInanceiro.Data
+@using System.Security.Claims
+@using System.Globalization
+@implements IAsyncDisposable
+@inject IDbContextFactory<FarolFInanceiro.Data.ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="contarecebers/create" class="btn btn-primary">Create New</a>
+</p>
+
+<QuickGrid Class="table table-striped" Items="context.ContasAReceber">
+
+    <TemplateColumn Title="DataCadastro" Context="contareceber">
+        @contareceber.DataCadastro.ToShortDateString()
+    </TemplateColumn>
+
+    <PropertyColumn Property="contareceber => contareceber.Descricao" />
+
+    <TemplateColumn Title="Valor" Align="Align.End" Context="contareceber">
+        @contareceber.Valor.ToString("C", ptBR)
+    </TemplateColumn>
+
+    <TemplateColumn Title="DataVencimento" Context="contareceber">
+        @contareceber.DataVencimento.ToShortDateString()
+    </TemplateColumn>
+
+    <TemplateColumn Title="DataRecebimento" Context="contareceber">
+        @contareceber.DataRecebimento?.ToShortDateString()
+    </TemplateColumn>
+
+    <TemplateColumn Context="contareceber">
+        <a href="@($"contarecebers/edit?id={contareceber.Id}")" class="btn btn-info">Edit</a> |
+        <a href="@($"contarecebers/details?id={contareceber.Id}")" class="btn btn-success">Details</a> |
+        <a href="@($"contarecebers/delete?id={contareceber.Id}")" class="btn btn-danger">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+
+@code {
+    private readonly CultureInfo ptBR = new("pt-BR");
+
+    private ApplicationDbContext context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

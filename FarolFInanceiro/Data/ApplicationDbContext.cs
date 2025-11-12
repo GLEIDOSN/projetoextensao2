@@ -7,5 +7,7 @@ namespace FarolFInanceiro.Data
     public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
     {
         public DbSet<ContaPagar> ContasAPagar { get; set; }
+
+        public DbSet<ContaReceber> ContasAReceber { get; set; }
     }
 }
