@@ -7,9 +7,9 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Details</PageTitle>
+<PageTitle>Detalhes</PageTitle>
 
-<h1>Details</h1>
+<h1>Detalhes</h1>
 
 <div>
     <h2>ContaPagar</h2>
@@ -36,8 +36,8 @@
             <dd class="col-sm-10">@contapagar.ApplicationUserId</dd>
         </dl>
         <div>
-            <a href="@($"/contapagars/edit?id={contapagar.Id}")" class="btn btn-warning">Edit</a> |
-            <a href="@($"/contapagars")" class="btn btn-danger">Back to List</a>
+            <a href="@($"/contapagars/edit?id={contapagar.Id}")" class="btn btn-warning">Editar</a> |
+            <a href="@($"/contapagars")" class="btn btn-danger">Retornar</a>
         </div>
     }
 </div>

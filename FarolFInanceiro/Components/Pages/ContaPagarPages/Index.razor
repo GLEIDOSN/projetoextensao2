@@ -15,39 +15,94 @@
 
 <h1>Index</h1>
 
-<p>
-    <a href="contapagars/create" class="btn btn-primary">Create New</a>
-</p>
+<div class="table-responsive d-none d-md-block">
+    <p>
+        <a href="contapagars/create" class="btn btn-primary">Novo Registro</a>
+    </p>
 
-<QuickGrid Class="table table-striped" Items="context.ContasAPagar">
-    <TemplateColumn Title="DataCadastro" Context="contapagar">
-        @contapagar.DataCadastro.ToShortDateString()
-    </TemplateColumn>
-    <PropertyColumn Property="contapagar => contapagar.Descricao" />
-    <TemplateColumn Title="Valor" Align="Align.End" Context="contapagar">
-        @contapagar.Valor.ToString("C", ptBR)
-    </TemplateColumn>
-    <TemplateColumn Title="DataVencimento" Context="contapagar">
-        @contapagar.DataVencimento.ToShortDateString()
-    </TemplateColumn>
-    <TemplateColumn Title="DataPagamento" Context="contapagar">
-        @contapagar.DataPagamento?.ToShortDateString()
-    </TemplateColumn>
+    <QuickGrid Class="table table-striped" Items="@contasPagarList.AsQueryable()">
+        <TemplateColumn Title="DataCadastro" Align="Align.Center" Context="contapagar">
+            @contapagar.DataCadastro.ToShortDateString()
+        </TemplateColumn>
+        <PropertyColumn Property="contapagar => contapagar.Descricao" />
+        <TemplateColumn Title="Valor" Align="Align.End" Context="contapagar">
+            @contapagar.Valor.ToString("C", ptBR)
+        </TemplateColumn>
+        <TemplateColumn Title="DataVencimento" Context="contapagar">
+            @contapagar.DataVencimento.ToShortDateString()
+        </TemplateColumn>
+        <TemplateColumn Title="DataPagamento" Context="contapagar">
+            @contapagar.DataPagamento?.ToShortDateString()
+        </TemplateColumn>
+        <TemplateColumn Title="Ações" Align="Align.Center" Context="contapagar">
+            <a href="@($"contapagars/edit?id={contapagar.Id}")" class="btn btn-info btn-sm">Editar</a> |
+            <a href="@($"contapagars/details?id={contapagar.Id}")" class="btn btn-success btn-sm">Detalhes</a> |
+            <a href="@($"contapagars/delete?id={contapagar.Id}")" class="btn btn-danger btn-sm">Deletar</a>
+        </TemplateColumn>
+    </QuickGrid>
 
-    <TemplateColumn Context="contapagar">
-        <a href="@($"contapagars/edit?id={contapagar.Id}")" class="btn btn-info">Edit</a> |
-        <a href="@($"contapagars/details?id={contapagar.Id}")" class="btn btn-success">Details</a> |
-        <a href="@($"contapagars/delete?id={contapagar.Id}")" class="btn btn-danger">Delete</a>
-    </TemplateColumn>
-</QuickGrid>
+    <div class="d-flex justify-content-end mt-3 p-1 bg-light border rounded">
+        <h4 class="mb-0">
+            Total: <span class="text-danger fw-bold">@TotalGeral.ToString("C", ptBR)</span>
+        </h4>
+    </div>
+</div>
+
+<div class="d-block d-md-none">
+    @if (contasPagarList.Any())
+    {
+        <div class="list-group">
+            @foreach (var contapagar in contasPagarList.OrderByDescending(c => c.DataVencimento))
+            {
+                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+
+                    <a href="@($"contapagars/details?id={contapagar.Id}")" class="text-decoration-none text-dark flex-grow-1">
+                        <div class="fw-bold">@contapagar.Descricao</div>
+                        <small class="text-muted">Vence em: @contapagar.DataVencimento.ToShortDateString()</small>
+                    </a>
+
+                    <div class="text-end me-3">
+                        <span class="fw-bold fs-5 text-danger">@contapagar.Valor.ToString("C", ptBR)</span>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="btn btn-light btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            ⋮
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="@($"contapagars/edit?id={contapagar.Id}")">Editar</a></li>
+                            <li><a class="dropdown-item" href="@($"contapagars/delete?id={contapagar.Id}")">Deletar</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="@($"contapagars/details?id={contapagar.Id}")">Detalhes</a></li>
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="list-group-item bg-light text-end">
+            <span class="me-2 text-muted">Total Geral:</span>
+            <span class="fw-bold fs-4 text-danger">@TotalGeral.ToString("C", ptBR)</span>
+        </div>
+    }
+    else
+    {
+        <p>Nenhuma conta encontrada.</p>
+    }
+</div>
+
+<a href="contapagars/create" class="fab d-block d-md-none">+</a>
 
 @code {
     private ApplicationDbContext context = default!;
     private readonly CultureInfo ptBR = new("pt-BR");
+    private decimal TotalGeral => contasPagarList.Sum(c => c.Valor);
+    private List<ContaPagar> contasPagarList = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         context = DbFactory.CreateDbContext();
+        contasPagarList = await context.ContasAPagar.ToListAsync();
     }
 
     public async ValueTask DisposeAsync() => await context.DisposeAsync();

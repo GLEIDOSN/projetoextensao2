@@ -15,46 +15,100 @@
 
 <h1>Index</h1>
 
-<p>
-    <a href="contarecebers/create" class="btn btn-primary">Create New</a>
-</p>
+<div class="table-responsive d-none d-md-block">
+    <p>
+        <a href="contarecebers/create" class="btn btn-primary">Novo Registro</a>
+    </p>
 
-<QuickGrid Class="table table-striped" Items="context.ContasAReceber">
+    <QuickGrid Class="table table-striped align-middle" Items="@contasReceberList.AsQueryable()">
 
-    <TemplateColumn Title="DataCadastro" Context="contareceber">
-        @contareceber.DataCadastro.ToShortDateString()
-    </TemplateColumn>
+        <TemplateColumn Title="DataCadastro" Align="Align.Center" Context="contareceber">
+            @contareceber.DataCadastro.ToShortDateString()
+        </TemplateColumn>
 
-    <PropertyColumn Property="contareceber => contareceber.Descricao" />
+        <PropertyColumn Property="contareceber => contareceber.Descricao" />
 
-    <TemplateColumn Title="Valor" Align="Align.End" Context="contareceber">
-        @contareceber.Valor.ToString("C", ptBR)
-    </TemplateColumn>
+        <TemplateColumn Title="Valor" Align="Align.End" Context="contareceber">
+            @contareceber.Valor.ToString("C", ptBR)
+        </TemplateColumn>
 
-    <TemplateColumn Title="DataVencimento" Context="contareceber">
-        @contareceber.DataVencimento.ToShortDateString()
-    </TemplateColumn>
+        <TemplateColumn Title="DataVencimento" Context="contareceber">
+            @contareceber.DataVencimento.ToShortDateString()
+        </TemplateColumn>
 
-    <TemplateColumn Title="DataRecebimento" Context="contareceber">
-        @contareceber.DataRecebimento?.ToShortDateString()
-    </TemplateColumn>
+        <TemplateColumn Title="DataRecebimento" Context="contareceber">
+            @contareceber.DataRecebimento?.ToShortDateString()
+        </TemplateColumn>
 
-    <TemplateColumn Context="contareceber">
-        <a href="@($"contarecebers/edit?id={contareceber.Id}")" class="btn btn-info">Edit</a> |
-        <a href="@($"contarecebers/details?id={contareceber.Id}")" class="btn btn-success">Details</a> |
-        <a href="@($"contarecebers/delete?id={contareceber.Id}")" class="btn btn-danger">Delete</a>
-    </TemplateColumn>
-</QuickGrid>
+        <TemplateColumn Title="Ações" Align="Align.Center" Context="contareceber">
+            <a href="@($"contarecebers/edit?id={contareceber.Id}")" class="btn btn-info btn-sm">Editar</a> |
+            <a href="@($"contarecebers/details?id={contareceber.Id}")" class="btn btn-success btn-sm">Detalhes</a> |
+            <a href="@($"contarecebers/delete?id={contareceber.Id}")" class="btn btn-danger btn-sm">Deletar</a>
+        </TemplateColumn>
+    </QuickGrid>
 
+    <div class="d-flex justify-content-end mt-3 p-1 bg-light border rounded">
+        <h4 class="mb-0">
+            Total: <span class="text-success fw-bold">@TotalGeral.ToString("C", ptBR)</span>
+        </h4>
+    </div>
+</div>
+
+<div class="d-block d-md-none">
+    @if (contasReceberList.Any())
+    {
+        <div class="list-group">
+            @foreach (var contaReceber in contasReceberList.OrderByDescending(c => c.DataVencimento))
+            {
+                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+
+                    <a href="@($"contarecebers/details?id={contaReceber.Id}")" class="text-decoration-none text-dark flex-grow-1">
+                        <div class="fw-bold">@contaReceber.Descricao</div>
+                        <small class="text-muted">Vence em: @contaReceber.DataVencimento.ToShortDateString()</small>
+                    </a>
+
+                    <div class="text-end me-3">
+                        <span class="fw-bold fs-5 text-success">@contaReceber.Valor.ToString("C", ptBR)</span>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="btn btn-light btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            ⋮
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="@($"contarecebers/edit?id={contaReceber.Id}")">Editar</a></li>
+                            <li><a class="dropdown-item" href="@($"contarecebers/delete?id={contaReceber.Id}")">Deletar</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="@($"contarecebers/details?id={contaReceber.Id}")">Detalhes</a></li>
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="list-group-item bg-light text-end">
+            <span class="me-2 text-muted">Total Geral:</span>
+            <span class="fw-bold fs-4 text-success">@TotalGeral.ToString("C", ptBR)</span>
+        </div>
+    }
+    else
+    {
+        <p>Nenhuma conta a receber encontrada.</p>
+    }
+</div>
+
+<a href="contarecebers/create" class="fab d-block d-md-none">+</a>
 
 @code {
     private readonly CultureInfo ptBR = new("pt-BR");
-
     private ApplicationDbContext context = default!;
+    private List<ContaReceber> contasReceberList = new();
+    private decimal TotalGeral => contasReceberList.Sum(c => c.Valor);
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         context = DbFactory.CreateDbContext();
+        contasReceberList = await context.ContasAReceber.ToListAsync();
     }
 
     public async ValueTask DisposeAsync() => await context.DisposeAsync();

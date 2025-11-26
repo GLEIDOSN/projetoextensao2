@@ -8,15 +8,15 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Edit</PageTitle>
+<PageTitle>Editar</PageTitle>
 
-<h1>Edit</h1>
+<h1>Editar</h1>
 
 <h2>ContaReceber</h2>
 <hr />
 @if (ContaReceber is null)
 {
-    <p><em>Loading...</em></p>
+    <p><em>Carregando...</em></p>
 }
 else
 {
@@ -51,8 +51,8 @@ else
                     <InputCheckbox id="recebida" @bind-Value="ContaReceber.Recebida" class="form-check-input" />
                     <ValidationMessage For="() => ContaReceber.Recebida" class="text-danger" />
                 </div>
-                <button type="submit" class="btn btn-primary">Save</button> |
-                <a href="/contarecebers" class="btn btn-danger">Back to List</a>
+                <button type="submit" class="btn btn-primary">Salvar</button> |
+                <a href="/contarecebers" class="btn btn-danger">Retornar</a>
             </EditForm>
         </div>
     </div>

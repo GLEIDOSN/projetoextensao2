@@ -58,3 +58,20 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.fab {
+    position: fixed;
+    width: 56px;
+    height: 56px;
+    bottom: 30px;
+    right: 30px;
+    background-color: var(--bs-primary); /* Usa a cor primária do seu Bootstrap */
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    font-size: 24px;
+    line-height: 56px; /* Centraliza o ícone '+' verticalmente */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    z-index: 100;
+    text-decoration: none;
+}
