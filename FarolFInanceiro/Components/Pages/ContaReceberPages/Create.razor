@@ -39,11 +39,6 @@
                 <InputCheckbox id="recebida" @bind-Value="ContaReceber.Recebida" class="form-check-input" /> 
                 <ValidationMessage For="() => ContaReceber.Recebida" class="text-danger" /> 
             </div>
-            <div class="mb-3">
-                <label for="applicationuserid" class="form-label">ApplicationUserId:</label>
-                <InputText id="applicationuserid" @bind-Value="ContaReceber.ApplicationUserId" class="form-control" />
-                <ValidationMessage For="() => ContaReceber.ApplicationUserId" class="text-danger" />
-            </div>
             <button type="submit" class="btn btn-primary">Create</button> |
             <a href="/contarecebers" class="btn btn-danger">Back to List</a>
         </EditForm>
