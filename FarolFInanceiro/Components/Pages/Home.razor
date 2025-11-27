@@ -1,24 +1,233 @@
 ﻿@page "/"
+@attribute [Authorize]
+@using ApexCharts
+@using FarolFInanceiro.Data
+@using FarolFInanceiro.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using System.Globalization
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard</PageTitle>
 
-<div class="p-5 mb-4 bg-light rounded-3 shadow-sm border mt-4">
-    <div class="container-fluid py-3">
-        <h1 class="display-5 fw-bold text-primary">Bem-vindo ao Farol Financeiro</h1>
+<div class="container mt-3">
 
-        <p class="col-md-8 fs-4 mt-3">
-            Seu guia para a saúde financeira.
-        </p>
-
-        <hr class="my-4">
-
-        <p class="text-muted">
-            Este projeto foi desenvolvido com muita dedicação e esforço durante a faculdade.
-            Esperamos que ele ajude na organização das suas contas!
-        </p>
-
-        <a href="contarecebers" class="btn btn-primary btn-lg mt-3" type="button">
-            Começar a navegar
-        </a>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-primary mb-0">Dashboard</h2>
+            <small class="text-muted">Visão geral do mês atual</small>
+        </div>
+        <span class="badge bg-light text-dark border p-2">@DateTime.Now.ToString("MMMM/yyyy", ptBR).ToUpper()</span>
     </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center mt-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        @* --- 1. CARDS DE RESUMO (KPIs) - Responsivo via Grid do Bootstrap --- *@
+        <div class="row g-3 mb-4">
+            @* Receitas *@
+            <div class="col-12 col-md-4">
+                <div class="card border-0 shadow-sm border-start border-4 border-success">
+                    <div class="card-body">
+                        <small class="text-muted fw-bold text-uppercase">A Receber</small>
+                        <h3 class="text-success fw-bold mb-0">@TotalReceberMes.ToString("C", ptBR)</h3>
+                    </div>
+                </div>
+            </div>
+
+            @* Despesas *@
+            <div class="col-12 col-md-4">
+                <div class="card border-0 shadow-sm border-start border-4 border-danger">
+                    <div class="card-body">
+                        <small class="text-muted fw-bold text-uppercase">A Pagar</small>
+                        <h3 class="text-danger fw-bold mb-0">@TotalPagarMes.ToString("C", ptBR)</h3>
+                    </div>
+                </div>
+            </div>
+
+            @* Saldo *@
+            <div class="col-12 col-md-4">
+                <div class="card border-0 shadow-sm border-start border-4 @(SaldoMes >= 0 ? "border-primary" : "border-warning")">
+                    <div class="card-body">
+                        <small class="text-muted fw-bold text-uppercase">Saldo Previsto</small>
+                        <h3 class="@(SaldoMes >= 0 ? "text-primary" : "text-warning") fw-bold mb-0">
+                            @SaldoMes.ToString("C", ptBR)
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* --- 2. GRÁFICO (Visível em ambos, mas ajustado) --- *@
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <ApexChart TItem="ResumoMensal"
+                           Title="Fluxo de Caixa (6 Meses)"
+                           Options="@options"
+                           Height="350">
+
+                    <ApexPointSeries TItem="ResumoMensal"
+                                     Items="dadosGrafico"
+                                     Name="Receitas"
+                                     XValue="@(e => e.MesAno)"
+                                     YValue="@(e => e.TotalReceber)"
+                                     SeriesType="SeriesType.Bar"
+                                     Color="#198754" />
+
+                    <ApexPointSeries TItem="ResumoMensal"
+                                     Items="dadosGrafico"
+                                     Name="Despesas"
+                                     XValue="@(e => e.MesAno)"
+                                     YValue="@(e => e.TotalPagar)"
+                                     SeriesType="SeriesType.Bar"
+                                     Color="#dc3545" />
+                </ApexChart>
+            </div>
+        </div>
+
+        @* --- 3. LISTA DE PRÓXIMOS VENCIMENTOS (SOMENTE MOBILE) --- *@
+        @* Aqui usamos a lógica d-block d-md-none que você gostou *@
+        <div class="d-block d-md-none mb-5">
+            <h5 class="fw-bold mb-3">Próximos Vencimentos</h5>
+
+            @if (proximasContas.Any())
+            {
+                <div class="list-group">
+                    @foreach (var conta in proximasContas)
+                    {
+                        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">@conta.Descricao</div>
+                                <small class="@(conta.DataVencimento < DateTime.Today ? "text-danger fw-bold" : "text-muted")">
+                                    @conta.DataVencimento.ToString("dd/MM")
+                                    @(conta.DataVencimento < DateTime.Today ? "(Atrasado)" : "")
+                                </small>
+                            </div>
+                            <span class="fw-bold text-danger">@conta.Valor.ToString("C", ptBR)</span>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-muted">Nenhuma conta a pagar próxima.</p>
+            }
+        </div>
+    }
 </div>
+
+@code {
+    private readonly CultureInfo ptBR = new("pt-BR");
+    private ApplicationDbContext context = default!;
+    private bool isLoading = true;
+
+    // Dados para os Cards (KPIs)
+    private decimal TotalReceberMes;
+    private decimal TotalPagarMes;
+    private decimal SaldoMes => TotalReceberMes - TotalPagarMes;
+
+    // Dados para o Gráfico
+    private List<ResumoMensal> dadosGrafico = new();
+    private ApexChartOptions<ResumoMensal> options = new();
+
+    // Dados para a Lista Mobile (Próximas contas a pagar)
+    private List<ContaPagar> proximasContas = new();
+
+    public class ResumoMensal
+    {
+        public string MesAno { get; set; } = string.Empty;
+        public decimal TotalReceber { get; set; }
+        public decimal TotalPagar { get; set; }
+        public int Ano { get; set; }
+        public int Mes { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            context = DbFactory.CreateDbContext();
+            var hoje = DateTime.Today;
+            var dataInicioGrafico = hoje.AddMonths(-6);
+            var inicioMesAtual = new DateTime(hoje.Year, hoje.Month, 1);
+            var fimMesAtual = inicioMesAtual.AddMonths(1).AddDays(-1);
+
+            // 1. CARREGAR DADOS DOS CARDS (Mês Atual)
+            TotalReceberMes = await context.ContasAReceber
+                .Where(c => c.DataVencimento >= inicioMesAtual && c.DataVencimento <= fimMesAtual)
+                .SumAsync(c => c.Valor);
+
+            TotalPagarMes = await context.ContasAPagar
+                .Where(c => c.DataVencimento >= inicioMesAtual && c.DataVencimento <= fimMesAtual)
+                .SumAsync(c => c.Valor);
+
+            // 2. CARREGAR LISTA MOBILE (Próximos 5 boletos a vencer)
+            proximasContas = await context.ContasAPagar
+                .Where(c => c.DataPagamento == null && c.DataVencimento >= hoje.AddDays(-5)) // Mostra atrasados de até 5 dias atrás também
+                .OrderBy(c => c.DataVencimento)
+                .Take(5)
+                .ToListAsync();
+
+            // 3. CARREGAR GRÁFICO (Mesma lógica anterior, otimizada)
+            var receitasGrafico = await context.ContasAReceber
+                .Where(c => c.DataVencimento >= dataInicioGrafico)
+                .GroupBy(c => new { c.DataVencimento.Year, c.DataVencimento.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(c => c.Valor) })
+                .ToListAsync();
+
+            var despesasGrafico = await context.ContasAPagar
+                .Where(c => c.DataVencimento >= dataInicioGrafico)
+                .GroupBy(c => new { c.DataVencimento.Year, c.DataVencimento.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(c => c.Valor) })
+                .ToListAsync();
+
+            // Unir e formatar dados do gráfico
+            var todasDatas = receitasGrafico.Select(x => new { x.Year, x.Month })
+                .Union(despesasGrafico.Select(x => new { x.Year, x.Month }))
+                .OrderBy(x => x.Year).ThenBy(x => x.Month)
+                .Distinct();
+
+            foreach (var d in todasDatas)
+            {
+                dadosGrafico.Add(new ResumoMensal
+                {
+                    MesAno = new DateTime(d.Year, d.Month, 1).ToString("MMM", ptBR).ToUpper(),
+                    Ano = d.Year,
+                    Mes = d.Month,
+                    TotalReceber = receitasGrafico.FirstOrDefault(x => x.Year == d.Year && x.Month == d.Month)?.Total ?? 0,
+                    TotalPagar = despesasGrafico.FirstOrDefault(x => x.Year == d.Year && x.Month == d.Month)?.Total ?? 0
+                });
+            }
+
+            ConfigurarGrafico();
+        }
+        finally
+        {
+            isLoading = false;
+            await context.DisposeAsync();
+        }
+    }
+
+    private void ConfigurarGrafico()
+    {
+        var jsFormatter = @"function (value) {
+            if (value === undefined) {return '';}
+            return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }";
+
+        options = new ApexChartOptions<ResumoMensal>
+        {
+            Yaxis = new List<YAxis> { new YAxis { Labels = new YAxisLabels { Formatter = jsFormatter } } },
+            Tooltip = new Tooltip { Y = new TooltipY { Formatter = jsFormatter } },
+            DataLabels = new DataLabels { Enabled = false },
+            Grid = new Grid { Show = true, BorderColor = "#f1f1f1" },
+            Legend = new Legend { Position = LegendPosition.Top }
+        };
+    }
+}

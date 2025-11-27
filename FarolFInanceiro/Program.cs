@@ -1,4 +1,5 @@
-﻿using FarolFInanceiro.Components;
+﻿using ApexCharts;
+using FarolFInanceiro.Components;
 using FarolFInanceiro.Components.Account;
 using FarolFInanceiro.Data;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -15,6 +16,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+builder.Services.AddApexCharts();
 
 builder.Services.AddAuthentication(options =>
     {
