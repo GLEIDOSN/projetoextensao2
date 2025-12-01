@@ -108,7 +108,10 @@
     protected override async Task OnInitializedAsync()
     {
         context = DbFactory.CreateDbContext();
-        contasReceberList = await context.ContasAReceber.ToListAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var currentUserId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        contasReceberList = await context.ContasAReceber.Where(e => e.ApplicationUserId == currentUserId).ToListAsync();
     }
 
     public async ValueTask DisposeAsync() => await context.DisposeAsync();

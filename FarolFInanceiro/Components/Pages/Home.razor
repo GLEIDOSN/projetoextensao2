@@ -6,7 +6,9 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
 @using System.Globalization
+@using System.Security.Claims
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
 @rendermode InteractiveServer
 
 <PageTitle>Dashboard</PageTitle>
@@ -153,6 +155,9 @@
         try
         {
             context = DbFactory.CreateDbContext();
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var currentUserId = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             var hoje = DateTime.Today;
             var dataInicioGrafico = hoje.AddMonths(-6);
             var inicioMesAtual = new DateTime(hoje.Year, hoje.Month, 1);
@@ -160,29 +165,29 @@
 
             // 1. CARREGAR DADOS DOS CARDS (Mês Atual)
             TotalReceberMes = await context.ContasAReceber
-                .Where(c => c.DataVencimento >= inicioMesAtual && c.DataVencimento <= fimMesAtual)
+                .Where(c => c.DataVencimento >= inicioMesAtual && c.DataVencimento <= fimMesAtual && c.ApplicationUserId == currentUserId)
                 .SumAsync(c => c.Valor);
 
             TotalPagarMes = await context.ContasAPagar
-                .Where(c => c.DataVencimento >= inicioMesAtual && c.DataVencimento <= fimMesAtual)
+                .Where(c => c.DataVencimento >= inicioMesAtual && c.DataVencimento <= fimMesAtual && c.ApplicationUserId == currentUserId)
                 .SumAsync(c => c.Valor);
 
             // 2. CARREGAR LISTA MOBILE (Próximos 5 boletos a vencer)
             proximasContas = await context.ContasAPagar
-                .Where(c => c.DataPagamento == null && c.DataVencimento >= hoje.AddDays(-5)) // Mostra atrasados de até 5 dias atrás também
+                .Where(c => c.DataPagamento == null && c.DataVencimento >= hoje.AddDays(-5) && c.ApplicationUserId == currentUserId) // Mostra atrasados de até 5 dias atrás também
                 .OrderBy(c => c.DataVencimento)
                 .Take(5)
                 .ToListAsync();
 
             // 3. CARREGAR GRÁFICO (Mesma lógica anterior, otimizada)
             var receitasGrafico = await context.ContasAReceber
-                .Where(c => c.DataVencimento >= dataInicioGrafico)
+                .Where(c => c.DataVencimento >= dataInicioGrafico && c.ApplicationUserId == currentUserId)
                 .GroupBy(c => new { c.DataVencimento.Year, c.DataVencimento.Month })
                 .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(c => c.Valor) })
                 .ToListAsync();
 
             var despesasGrafico = await context.ContasAPagar
-                .Where(c => c.DataVencimento >= dataInicioGrafico)
+                .Where(c => c.DataVencimento >= dataInicioGrafico && c.ApplicationUserId == currentUserId)
                 .GroupBy(c => new { c.DataVencimento.Year, c.DataVencimento.Month })
                 .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(c => c.Valor) })
                 .ToListAsync();
